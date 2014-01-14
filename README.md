@@ -1,49 +1,67 @@
 PromiseSouper
 =============
 
-将模块开发的实现的实现融合如Promise，衍生出更为简单的API，实现更为灵活自由、更加简单、更底层的一个回调处理工具。
+将模块开发的实现的实现融合Promises的链式书写，衍生出更为简单的API，实现更为灵活自由、更加简单、更底层的一个回调处理工具，而且不仅仅是回调处理。
 
 ## API
 
 ### PromiseCore
 
 **参数**
-1. 模块名：modulesName _String_ 可空，空值时系统默认生成一个随机的名字作为匿名模块的标识
-2. 依赖的模块名：relyOnsModulesName _StringArray_ 可空，空值时代表这个模块没有任何依赖，就不会因为依赖的触发而触发回调函数
-3. 模块代码：callback _Function_ 不可空
-4. 父模块或者全局模块名称：parent _PromiseCoreInstance_ , _String_ 可空，空值时讲模块存储在全局模块缓存区中
+
+1. 模块名：`modulesName` _String_ 可空，空值时系统默认生成一个随机的名字作为匿名模块的标识
+2. 依赖的模块名：`relyOnsModulesName` _StringArray_ 可空，空值时代表这个模块没有任何依赖，就不会因为依赖的触发而触发回调函数
+3. 模块代码：`callback` _Function_ 不可空
+4. 父模块或者全局模块名称：`parent` _PromiseCoreInstance_ , _String_ 可空，空值时讲模块存储在全局模块缓存区中
+
 **介绍**
+
 生成一个PromiseCore实例对象，这里无需new关键字
 
 ### .getModule(PromiseCore)
 **参数**
-1. 模块名：modulesName _String_ 可空，若为空，则指向最近一次声明的PromiseCore实例对象
+
+1. 模块名：`modulesName` _String_ 可空，若为空，则指向最近一次声明的PromiseCore实例对象
+
 **介绍**
+
 根据模块名称获取全局模块
 
 ### .register(PromiseCore.prototype)
 **参数**
+
 参数与`PromiseCore`构造函数一样
+
 **介绍**
+
 注册一个全局模块，返回父PromiseCore实例对象
 
 ### .registerChild(PromiseCore.prototype)
 **参数**
+
 参数前三个与`PromiseCore`构造函数一样，第四个参数为空时存储在当前PromiseCore实例对象的模块缓存区中
+
 **介绍**
+
 注册一个子模块，返回父PromiseCore实例对象
 
 ### .getModule(PromiseCore.prototype)
 **参数**
-1. 模块名：modulesName _String_ 可空，若为空，则指向最近一次声明的PromiseCore实例对象
+
+1. 模块名：`modulesName` _String_ 可空，若为空，则指向最近一次声明的PromiseCore实例对象
+
 **介绍**
+
 根据模块名称获取子模块或者全局模块
 
 ### .emit(PromiseCore.prototype)
 **参数**
-1. 模块名：modulesName _String_ 可空，空值时默认指定为为当前模块
-2. 给所触发的回调的参数数组：callbackArguments _likeArray_ , _Array_ 可空
+
+1. 模块名：`modulesName` _String_ 可空，空值时默认指定为为当前模块
+2. 给所触发的回调的参数数组：`callbackArguments` _likeArray_ , _Array_ 可空
+
 **介绍**
+
 触发指定模块的回调
 
 ## 关键特性
