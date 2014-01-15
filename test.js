@@ -1,37 +1,71 @@
 //////////////测试////////////////////
 var PromiseCore = require("./PromiseCore");
+
+//多层依赖测试，传参测试，传递依赖测试
 var main = PromiseCore(function() {
-    console.log("begin run random!");
+    console.log("Begin run random!");
     var num = Math.random();
     if (num > 0.5) {
-        this.emit("test1", [num]);
+        this.emit("module_1", [num]);
     } else {
-        this.emit("test2", [num]);
+        this.emit("module_2", [num]);
     }
-}).registerChild("test1", function(num) {
-    console.log(num, "is larger than", 0.5);
+}).register("module_1", function(num) {
+    console.log("   ", num, "is larger than", 0.5);
     return num;
-}).registerChild("test2", function(num) {
-    console.log(num, "is small than", 0.5);
+}).register("module_2", function(num) {
+    console.log("   ", num, "is small than", 0.5);
     return num;
-}).register("test3", 'test1', function(test1_num) {
-    console.log("test1 to test3", test1_num);
-    this.emit("end");
-}).register("test4", 'test2', function(test2_num) {
-    console.log("test2 to test4", test2_num);
-    this.emit("end");
-}).register("end", function() {
-    console.log("bey bey");
-}).register(['test1', 'test3'], function(num) {
-    console.log(this.registerName,"is relyon ",this.relyOns,num);
+}).register("module_3", 'module_1', function(module_1_num) {
+    this.emit("toHash");
+    return module_1_num.toString(36).substr(2);
+}).register("module_4", 'module_2', function(module_2_num) {
+    this.emit("toHash");
+    return module_2_num.toString(36).substr(2);
+}).register("toHash", function() {
+    console.log("       Begin format Hash.");
+}).register(['module_1', 'module_3'], function(num, hash) {
+    console.log("           ", num, " -> ", hash);
+}).register(['module_2', 'module_4'], function(num, hash) {
+    console.log("           ", num, " -> ", hash);
 }).emit();
 
-console.log(PromiseCore.getModule());
 
-PromiseCore("m1",function(v){
-    return 1+v;
-}).register("m2",function(v){
-    return 2+v;
-}).register(["m1","m2"],function(m1,m2){
-    console.log([m1,"+",m2,"=",m1+m2].join(" "))
-}).emit("m1",[10]).emit("m2",[20]);
+//子模块测试
+var namespace = PromiseCore("namespace", function() {
+    return this.registerName;
+}).registerChild("c1", "namespace", function() {
+    if (this.getModule("c2")) {
+        console.log(this.registerName + " can get c2");
+    } else {
+        console.log(this.registerName + " can't get c2");
+    }
+});
+
+//在全局中尝试获取namespace.c1
+if (PromiseCore.getModule("c1")) {
+    console.log("can get c1 in global");
+} else {
+    console.log("can't get c1 in global");
+}
+//在namespace中尝试获取namespace.c1
+if (namespace.getModule("c1")) {
+    console.log("can get c1 in " + namespace.registerName);
+    var c1 = namespace.getModule("c1");
+    c1.registerChild("c1_c", function() {});
+    namespace.registerChild("c2", "namespace", function() {
+        if (this.getModule("c1_c")) {
+            console.log(this.registerName + " can get c1_c");
+        } else {
+            console.log(this.registerName + " can't get c1_c");
+        }
+    });
+
+    //使用register注册同级模块
+    c1.register("c3", "c1", function() {
+        console.log(this.registerName+"'s parent module is "+this.namespace.registerName);
+    });
+} else {
+    console.log("can't get c1 in " + namespace.registerName);
+}
+namespace.emit();

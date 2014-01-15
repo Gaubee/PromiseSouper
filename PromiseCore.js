@@ -63,22 +63,25 @@
         self.relyOns = relyOns;
         self.registerName = registerName;
         self.callback = callback;
-        self.modules = new ModulesPrototype;
         //保存运行结果，默认滞空，可惰性声明
         // self.result = undefined;
 
         //注册触发节点
         //如果有传入父模块存储点的话则存储在父级的模块管理器中，否则存储在全局模块管理器中
         var modulesStore = PromiseCore.modules;
-        if (parent) {
+        if (parent !== undefined) {
             //可以只PromiseCore对象也可以是PromiseCore的registerName，前提是这是一个全局模块才能获取到
             if (parent.modules || (parent = PromiseCore.modules[parent])) {
                 //获取成功，则保存在指定的父模块中
                 modulesStore = parent.modules;
+                //保存父模块，如果无父模块则代表着此模块指向全局
+                self.namespace = parent;
             }
         }
         modulesStore[registerName] = self;
         lastRegisterName = registerName;
+        ModulesPrototype.prototype = modulesStore;
+        self.modules = new ModulesPrototype;
 
         var promiseCoreRelyOns = PromiseCore.relyOns;
         for (var i = 0, len = relyOns.length, relyOn_item; i < len; i += 1) {
@@ -91,8 +94,9 @@
     //保存模块
 
     function ModulesPrototype() {};
-    //构造函数用于生成模块原型链，实现“子模块注册”
-    ModulesPrototype.prototype = PromiseCore.modules = {};
+    //构造函数用于生成模块原型链，实现“子模块注册”，动态绑定
+    /*ModulesPrototype.prototype = */
+    PromiseCore.modules = {};
     //保存依赖
     PromiseCore.relyOns = {};
 
@@ -146,8 +150,12 @@
             }
             return self;
         },
+        registerGlobal: function(registerName, relyOns, callback) {
+            registerPromiseCore(registerName, relyOns, callback)
+            return this;
+        },
         register: function(registerName, relyOns, callback, parent) {
-            registerPromiseCore(registerName, relyOns, callback, parent)
+            registerPromiseCore(registerName, relyOns, callback, parent || this.namespace)
             return this;
         },
         registerChild: function(registerName, relyOns, callback, parent) {

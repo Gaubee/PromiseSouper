@@ -6,7 +6,7 @@ PromiseSouper
 ## 关键特性
 
 ### 链式调用
-一般的写法，就是声明一个`PromiseCore实例对象`后不断地`register`各种全局模块与子模块来定义一系列的逻辑分支，最后使用`emit`方法来指定触发一个或多个起点。值得注意的是`register`函数返回的并不是刚刚注册的`PromiseCore实例对象`，而是`register`函数的调用者，也就是当前实例，`registerChild`、`emit`函数也一样。如果要获取到刚刚注册的对象，可以使用`getModule`方法来得到，这时回调链才意味着被改变。
+一般的写法，就是声明一个`PromiseCore实例对象`后不断地`register`各种全局模块与子模块来定义一系列的逻辑分支，最后使用`emit`方法来指定触发一个或多个起点。值得注意的是`register`函数返回的并不是刚刚注册的`PromiseCore实例对象`，而是`register`函数的调用者，也就是当前实例，`registerGlobal`、`registerChild`、`emit`函数也一样。如果要获取到刚刚注册的对象，可以使用`getModule`方法来得到，这时回调链才意味着被改变。
 
 ### 依赖声明
 依赖的声明的概念来自模块化的实现，这里代替了繁杂的`if-else`混合异步回调的情景。比方说：
@@ -59,7 +59,7 @@ PromiseCore(function(){
 .register("empty password and secondPassword",["empty password", "empty second password"],function(){
 	/* 清空"empty second password"的所显示的错误信息 */
 })
-.register("empty password but not secondPassword"["empty password", "password and secondPassword diffrent"],function(){
+.register("empty password but not secondPassword",["empty password", "password and secondPassword diffrent"],function(){
 	/* 清空"password and secondPassword diffrent"的所显示的错误信息 */
 })
 ```
@@ -79,6 +79,10 @@ PromiseCore("m1",function(v){
 ```
 11 + 22 = 33
 ```
+
+### 子模块作用域
+我们通常使用字符串来描述一个模块，但是有时候为了避免模块名冲突而使用一堆过长字符串是得不偿失的。因此可以使用`registerChild`来实现子模块的注册，用`register`来注册同级模块。这样可以在不同的作用域中用简单字符串来描述模块（作为模块的名字）而不引发模块覆盖。
+注意，模块A是无法获取到子模块B的子模块C，但是C可以获取到模块A，应为模块存储链式继承的。
 
 ## API
 
@@ -104,6 +108,16 @@ PromiseCore("m1",function(v){
 
 根据模块名称获取全局模块
 
+### .registerGlobal(PromiseCore.prototype)
+**参数**
+
+参数与`PromiseCore`构造函数一样
+
+**介绍**
+
+注册一个全局模块，返回父PromiseCore实例对象。
+
+
 ### .register(PromiseCore.prototype)
 **参数**
 
@@ -111,7 +125,11 @@ PromiseCore("m1",function(v){
 
 **介绍**
 
-注册一个全局模块，返回父PromiseCore实例对象
+1. 注册一个同级模块，返回父PromiseCore实例对象。
+比如说如果当前模块是全局模块，则同样注册一个全局模块。
+如果当前模块是某个模块A的子模块，则注册的模块同样在A的子模块中。
+
+2. 可以强制指定父模块
 
 ### .registerChild(PromiseCore.prototype)
 **参数**
