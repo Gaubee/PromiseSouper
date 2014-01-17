@@ -102,7 +102,7 @@ PromiseCore("main", function() {
 .emit("main");
 
 ```
-呵呵，看到这么多代码是不是吓惨了？PromiseSouper现在不会在API层面提供错误捕捉，以后也不会，我不会为了一点小便捷而放弃灵活性，如果真要这中API，拿PromiseSouper去封装吧。为什么？因为现在**我要添置一个功能，假设你在不懂Promises和PromiseSouper的情况下叫你用以上两种方法去实现，你会选择哪一种？**如果你选择了后者，感谢，我们拥有同样的编程思想。
+呵呵，看到这么多代码是不是吓惨了？PromiseSouper现在不会在API层面提供错误捕捉，以后也不会，我不会为了一点小便捷而放弃灵活性，如果真要这种API，拿PromiseSouper去封装吧。为什么？因为现在**我要添置一个功能，假设你在不懂Promises和PromiseSouper的情况下叫你用以上两种方法去实现，你会选择哪一种？**如果你选择了后者，感谢，我们拥有同样的编程思想。
 现在，您可以来体验一下PromiseSouper中的核心概念（依赖声明、依赖注入等）所能带来的强悍功能了。
 
 ## 关键特性
@@ -223,6 +223,8 @@ $("name=['password']").on("input", function() {
 
 **介绍**
 
+触发指定模块的回调
+
 ### .getModule(PromiseCore)
 **参数**
 
@@ -271,8 +273,6 @@ $("name=['password']").on("input", function() {
 **介绍**
 
 注册一个全局模块，返回父PromiseCore实例对象。
-
-触发指定模块的回调
 
 ### .reset(PromiseCore.prototype)
 **参数**
