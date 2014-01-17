@@ -19,12 +19,14 @@ PromiseSouper
 ```
 我们可以这么拆分这些模块：
 ```js
-PromiseCore(function(){
+PromiseCore("verify",function(){
 	//为空的情况
-	if(secondPassword.value===""){
-		this.emit("empty second password");
-	}
-	if(password.value===""){
+	if(secondPassword.value===password.value==="===""")
+		//中断
+			this.emit("empty second password");
+		}
+		if(password.value===""){
+	{
 		this.emit("empty password");
 	}
 	//不为空的情况
@@ -52,16 +54,21 @@ PromiseCore(function(){
 1、 密码与重复密码这两个输入框同时为空时，我们只显示“密码为空的错误提示”
 2、 密码为空时，密码与重复密码不同的错误提示不显示，只显示“密码为空的错误提示”
 ```
-所以，我们只要进一步追加相应的模块，注意，模块之间无法互相阻止，这点应各种不同的业务都有不同的解决方案，顾不进行插手。
-但在现在这个问题中我们可以通过清空错误信息提示内容来实现，伪代码如下：
+所以，我们只要进一步追加相应的模块进行描述，并反向注册依赖来实现中断注入：
 ```js
 //追加代码
-.register("empty password and secondPassword",["empty password", "empty second password"],function(){
-	/* 清空"empty second password"的所显示的错误信息 */
+.register("empty password and stop","verify",function(){
+	if(password.value===""){
+		//中断
+		this.stop("empty second password");
+		this.stop("empty password but not secondPassword");
+		/* ... */
+	}
 })
-.register("empty password but not secondPassword",["empty password", "password and secondPassword diffrent"],function(){
-	/* 清空"password and secondPassword diffrent"的所显示的错误信息 */
-})
+.addDependent("empty password",["empty password and secondPassword"])
+.addDependent("empty second password",["empty password and secondPassword"])
+.addDependent("empty password but not secondPassword",["empty password and secondPassword"])
+
 ```
 可以看到，我么通过模块的依赖来进一步实现了更深层更有意义的信息提醒，这是Promise/A+ 规范所不能做到的，也是模块化的魅力。
 
@@ -158,3 +165,32 @@ PromiseCore("m1",function(v){
 **介绍**
 
 触发指定模块的回调
+
+### .stop(PromiseCore.prototype)
+**参数**
+
+1. 模块名：`modulesName` _String_ 可空，空值时默认指定为为当前模块
+
+**介绍**
+
+中断指定模块的运行
+
+### .reset(PromiseCore.prototype)
+**参数**
+
+1. 模块名：`modulesName` _String_ 可空，空值时默认指定为为当前模块
+
+**介绍**
+
+清空指定模块的运行结果的缓存
+
+### .addDependent(PromiseCore.prototype)
+**参数**
+
+1. 模块名：`modulesName` _String_ 指定的模块名
+2. 依赖的模块名：`relyOnsModulesName` _StringArray_ 所要加入的模块名数组
+
+**介绍**
+
+为指定模块添加依赖
+
