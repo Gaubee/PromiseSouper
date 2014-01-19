@@ -1,8 +1,4 @@
 (function(global, undefined) {
-    // if (typeof console === "undefined") {
-    //  function noop() {};
-    //  global.console = {};
-    // }
 
     var uid = "__" + Math.random().toString(36).substr(2);
     var uuid = function() {
@@ -23,7 +19,7 @@
             callback = registerName;
             registerName = uuid();
             relyOns = [];
-        } else if (!callback) { //arguments.length === 2
+        } else if (!(callback instanceof Function)) { //arguments.length === 2[, parent]
 
             //参数情况2：
             //registerName, callback[, parent]
@@ -91,12 +87,14 @@
         self.modules = new _Create;
 
         _Create.prototype = relyOnsStore;
-        //保存依赖关系
+        //保存依赖关系链
         self._relyOns = new _Create;
 
         for (var i = 0, len = relyOns.length, relyOn_item; i < len; i += 1) {
             //注册触发依赖，逆向保存依赖，形成可触发模式
             relyOn_item = relyOns[i];
+            //可以沿着作用域链向下查找，所以不用hasOwnProperty
+            //(relyOnsStore.hasOwnProperty(relyOn_item) ? relyOnsStore[relyOn_item] : (relyOnsStore[relyOn_item] = []))
             (relyOnsStore[relyOn_item] || (relyOnsStore[relyOn_item] = [])).push(registerName);
         }
     };
@@ -138,47 +136,62 @@
                 registerName = self.registerName;
             }
             var emittedModule = promiseCoreModules[registerName];
-            if (emittedModule) {
-                emittedModule.result = emittedModule.callback.apply(emittedModule, applyArguments);
-            }
-            var relyOns = self._relyOns[registerName];
 
             //为空不报错，也无需警告
-            if (relyOns) {
-                var promiseCoreModules_item;
-                for (var i = 0, len = relyOns.length, relyOns_item; i < len; i += 1) {
-                    //循环获取所有的依赖，依次尝试触发
-                    relyOns_item = relyOns[i];
-                    promiseCoreModules_item = promiseCoreModules[relyOns_item];
-                    if (promiseCoreModules_item) {
-                        //触发记录
-                        var emitted = promiseCoreModules_item.emitted;
-                        //依赖的模块名称集合
-                        var moduleRelyOns = promiseCoreModules_item.relyOns;
+            if (!emittedModule) {
+                return self;
+            }
 
-                        //用于收集依赖对象的参数
-                        applyArguments = [];
-                        emitted[registerName] = true;
+            var relyOns = emittedModule._relyOns[registerName] || [];
 
-                        //判断是否被阻止了
-                        if (promiseCoreModules_item._getPrevent()) {
+            //在触发前，把emitted（触发记录）写入，这样，callback中的clear才能正常运行
+            var promiseCoreModules_item;
+            for (var i = 0, len = relyOns.length, relyOns_item; i < len; i += 1) {
+                promiseCoreModules_item = promiseCoreModules[relyOns[i]];
+                if (promiseCoreModules_item) {
+                    promiseCoreModules_item.emitted[registerName] = true;
+                }
+            }
+            //运作回调函数
+            emittedModule.result = emittedModule.callback.apply(emittedModule, applyArguments);
+
+            for (var i = 0, len = relyOns.length, relyOns_item; i < len; i += 1) {
+                //循环获取所有的依赖，依次尝试触发
+                relyOns_item = relyOns[i];
+                promiseCoreModules_item = promiseCoreModules[relyOns_item];
+                if (promiseCoreModules_item) {
+                    //触发记录
+                    var emitted = promiseCoreModules_item.emitted;
+                    //依赖的模块名称集合
+                    var moduleRelyOns = promiseCoreModules_item.relyOns;
+
+                    //用于收集依赖对象的参数
+                    applyArguments = [];
+                    // emitted[registerName] = true;
+
+                    //判断是否被阻止了
+                    if (promiseCoreModules_item._getPrevent()) {
+                        break;
+                    }
+                    for (var j = 0, len2 = moduleRelyOns.length, moduleRelyOns_name; j < len2; j += 1) {
+                        moduleRelyOns_name = moduleRelyOns[j];
+                        //若发现有未触发项，则直接停止触发
+                        if (!emitted[moduleRelyOns_name]) {
                             break;
-                        }
-                        for (var j = 0, len2 = moduleRelyOns.length, moduleRelyOns_name; j < len2; j += 1) {
-                            moduleRelyOns_name = moduleRelyOns[j];
-                            //若发现有未触发项，则直接停止触发
-                            if (!emitted[moduleRelyOns_name]) {
-                                break;
-                            } else {
-                                applyArguments.push(promiseCoreModules[moduleRelyOns_name].result);
-                            }
-                        }
-                        //遍历完成依赖项已经完全触发完毕，可触发自身
-                        if (j === len2) {
-                            promiseCoreModules_item.emit(applyArguments);
+                        } else {
+                            applyArguments.push(promiseCoreModules[moduleRelyOns_name].result);
                         }
                     }
+                    //遍历完成依赖项已经完全触发完毕，可触发自身
+                    if (j === len2) {
+                        promiseCoreModules_item.emit(applyArguments);
+                    }
                 }
+            }
+
+            //如果返回的结果是PromiseCore，则触发（After Emitted）
+            if (emittedModule.result instanceof PromiseCore) {
+                emittedModule.result.emit();
             }
             return self;
         },
@@ -187,15 +200,21 @@
             return this;
         },
         register: function(registerName, relyOns, callback, parent) {
-            registerPromiseCore(registerName, relyOns, callback, parent || this.namespace)
+            var args = Array.prototype.slice.call(arguments);
+            var lastParameter = args[args.length - 1];
+            if (lastParameter instanceof Function) {
+                args.push(this.namespace);
+            }
+            registerPromiseCore.apply(this, args);
             return this;
         },
         registerChild: function(registerName, relyOns, callback, parent) {
-            var globalModules = PromiseCore.modules;
-            PromiseCore.modules = this.modules;
-            if (registerName==="input username") {console.log("parent:",parent===undefined?this:parent);};
-            registerPromiseCore(registerName, relyOns, callback, parent===undefined?this:parent);
-            PromiseCore.modules = globalModules;
+            var args = Array.prototype.slice.call(arguments);
+            var lastParameter = args[args.length - 1];
+            if (lastParameter instanceof Function) {
+                args.push(this);
+            }
+            registerPromiseCore.apply(this, args);
             return this;
         },
         getModule: function(moduleName) {
@@ -280,6 +299,7 @@
                 }
                 modules_item.emitted[registerName] = false;
             }
+            return self;
         },
         addDependent: function(moduleName, relyOns) {
             var self = this,
@@ -295,7 +315,7 @@
                 var oldRelyOns = addDependentModule.relyOns;
 
                 //依赖的方向关系是保存在上一层中
-                var relyOnsStore = addDependentModule.parnet ? addDependentModule.parnet._relyOns : PromiseCore._relyOns;
+                var relyOnsStore = addDependentModule.namespace ? addDependentModule.namespace._relyOns : PromiseCore._relyOns;
 
                 var tempHash = {};
                 var relyOns_item;
@@ -344,6 +364,7 @@
         return PromiseCore.modules[moduleName === undefined ? lastRegisterName : moduleName];
     }
 
+    registerPromiseCore.modules = PromiseCore.modules;
     /*
      * as AMD & CMD
      */

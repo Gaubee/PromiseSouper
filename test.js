@@ -1,5 +1,7 @@
 //////////////测试////////////////////
-var PromiseCore = require("./PromiseCore");
+if (typeof require === "function") {
+    var PromiseCore = require("./PromiseCore");
+}
 /*
  * 基础测试
  */
@@ -84,92 +86,96 @@ PromiseCore("submit form", function() {
 }).registerChild("password", ["submit form"], function(password) {
     console.log("my submit data is-> password:", password);
 })
-.getModule( /*获取刚刚注册的模块*/ )
-.register( /*注册同级模块*/ "empty password", "submit form", function(password) {
-    if (password.trim() === "") {
-        console.log("stop password");
-        this.stop("password");
-    }
-}).addDependent("password",["empty password"]).emit("submit form");
+    .getModule( /*获取刚刚注册的模块*/ )
+    .register( /*注册同级模块*/ "empty password", "submit form", function(password) {
+        if (password.trim() === "") {
+            console.log("stop password");
+            this.stop("password");
+        }
+    }).addDependent("password", ["empty password"]).emit("submit form");
 
 /*
  * 测试重置
  */
 console.log("------------------测试重置------------------");
 //第一次运行
+//注意：这里login是全局模块，所以所以依赖的["username", "password"]也会默认指向全局
+//如果后面也有模块一样依赖"username", "password"，会导致依赖冲突
 PromiseCore("login", ["username", "password"], function(username, password) {
-    console.log("   username is:",username);
-    console.log("   password is:",password);
+    console.log("   username is:", username);
+    console.log("   password is:", password);
     return {
-        username:username,
-        password:password
+        username: username,
+        password: password
     }
-}).registerChild("username",function (username) {
+}).registerChild("username", function(username) {
     return username;
-}).registerChild("password",function (password) {
+}).registerChild("password", function(password) {
     return password;
-}).registerChild("test",function () {
-    this.emit("username",["Gaubee"]);
-    this.emit("password",["123456"]);
-}).registerChild("submit",["login"],function (form_data) {
-    console.log("       submit form:",form_data);
+}).registerChild("test", function() {
+    this.emit("username", ["Gaubee"]);
+    this.emit("password", ["123456"]);
+}).registerChild("submit", ["login"], function(form_data) {
+    console.log("       submit form:", form_data);
 }).getModule("test").emit();
 //不重置表单的情况，每一次子模块触发都会引发login的触发
-PromiseCore.getModule("login").emit("username",["Bangeel"]).emit("password",["654321"]);
+PromiseCore.getModule("login").emit("username", ["Bangeel"]).emit("password", ["654321"]);
 //重置表单的情况，子模块全部触发一次才能正常触发login模块
-PromiseCore.getModule("login").reset("login").emit("username",["Cindy"]).emit("password",["heehhehheh"]);
+PromiseCore.getModule("login").reset("login").emit("username", ["Cindy"]).emit("password", ["heehhehheh"]);
 
 /*
  * 测试清空触发记录
  */
 console.log("------------------测试清空------------------");
-var clearModule = PromiseCore(["username","password","click submit"],function (username, password) {
-    console.log("username is:",username);
-    console.log("password is:",password);
-    console.log("submit success");
-
-    //click submit只能是一次性的，每次触发这个提交一定要click submit一次
-    this.clear("click submit");
+//注意，这里如果直接使用username、password可能会和上面什么的全局变量冲突
+//所以最佳实践的角度来说，我们建议使用一个无依赖的启动模块作为全局模块，来保护子模块
+var clearModule = PromiseCore("clear_test", function(argument) {}).registerChild(["c_username", "c_password", "click submit"], function(username, password) {
+    console.log("username is:", username);
+    console.log("password is:", password);
+    console.log("submit success\n--------------");
 })
-.registerChild("click submit",function () {
-    console.log("click submit button");
-})
-.registerChild("username","input username",function (username) {
-    return username;
-})
-.registerChild("input username",function(value){
-    if (!value.length) {
-        this.clear();
-    }
-    return value;
-})
-.registerChild("password","input password",function (password) {
-    return password;
-})
-.registerChild("input password",function(value){
-    if (!value.length) {
-        this.clear();
-    }
-    return value;
-})
+    .getModule()
+    .registerChild("click submit", function() {
+        var self = this;
+        console.log("click submit button");
+        //click submit只能是一次性的，每次触发这个提交一定要click submit一次
+        return PromiseCore(function() {
+            self.clear();
+        })
+    })
+    .registerChild("c_username", "input username", function(input_username) {
+        return input_username;
+    })
+    .registerChild("input username", function(value) {
+        if (!value.length) {
+            this.clear();
+        }
+        return value;
+    })
+    .registerChild("c_password", "input password", function(input_password) {
+        return input_password;
+    })
+    .registerChild("input password", function(value) {
+        if (!value.length) {
+            this.clear();
+        }
+        return value;
+    })
 //输入用户名
-.emit("input username",["Gaubee"])
+.emit("input username", ["Gaubee"])
 //输入密码
-.emit("input password",["123456"])
+.emit("input password", ["123456"])
 //点击提交
 .emit("click submit")
 
 //修改用户名
-.emit("input username",["Bangeel"])
+.emit("input username", ["Bangeel"])
 //再次提交
 .emit("click submit")
 
 //密码滞空
-.emit("input password",[""])
+.emit("input password", [""])
 //密码为modules_item空时，无法提交表单，等待密码的输入
 .emit("click submit")
-
-
-console.log(Object.keys(clearModule.modules));
-console.log(Object.keys(clearModule.getModule("input username").modules.__proto__));
-console.log(clearModule.getModule("input username")._relyOns.__proto__);
+.emit("input password", ["654321"])
+.emit("click submit")
