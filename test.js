@@ -177,5 +177,7 @@ var clearModule = PromiseCore("clear_test", function(argument) {}).registerChild
 .emit("input password", [""])
 //密码为modules_item空时，无法提交表单，等待密码的输入
 .emit("click submit")
+
+//重新输入密码进行提交
 .emit("input password", ["654321"])
 .emit("click submit")

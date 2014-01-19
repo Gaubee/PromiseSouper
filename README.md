@@ -215,6 +215,15 @@ $("name=['password']").on("input", function() {
 
 为指定模块添加依赖
 
+### .clear(PromiseCore.prototype)
+**参数**
+
+1. 模块名：`modulesName` _String_ 可空，空值时默认指定为为当前模块
+
+**介绍**
+
+滚回指定模块的触发记录
+
 ### .emit(PromiseCore.prototype)
 **参数**
 
@@ -291,3 +300,7 @@ $("name=['password']").on("input", function() {
 **介绍**
 
 中断指定模块的运行
+
+## 使用介绍
+
+**详见[测试文件](./test.js)**
