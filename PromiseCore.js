@@ -193,7 +193,8 @@
         registerChild: function(registerName, relyOns, callback, parent) {
             var globalModules = PromiseCore.modules;
             PromiseCore.modules = this.modules;
-            registerPromiseCore(registerName, relyOns, callback, this);
+            if (registerName==="input username") {console.log("parent:",parent===undefined?this:parent);};
+            registerPromiseCore(registerName, relyOns, callback, parent===undefined?this:parent);
             PromiseCore.modules = globalModules;
             return this;
         },
@@ -244,11 +245,49 @@
             }
             return self;
         },
+        _isEmitted: function(moduleName) {
+            var self = this,
+                isEmittedModule = self
+            if (moduleName !== undefined) {
+                isEmittedModule = self.modules[moduleName];
+            }
+            var moduleRelyOns = isEmittedModule.relyOns;
+            var emitted = isEmittedModule.emitted;
+            for (var j = 0, len2 = moduleRelyOns.length, moduleRelyOns_name; j < len2; j += 1) {
+                moduleRelyOns_name = moduleRelyOns[j];
+                //若发现有未触发项，则直接停止触发
+                if (!emitted[moduleRelyOns_name]) {
+                    return false;
+                }
+            }
+            return true;
+        },
+        clear: function(moduleName) {
+            var self = this,
+                clearModule = self
+            if (moduleName !== undefined) {
+                clearModule = self.modules[moduleName];
+            }
+            //所有依赖于指定模块的模块，清空其触发记录，递归清空
+            var modulesStore = clearModule.modules;
+            var registerName = clearModule.registerName;
+            var currentRelyOns = clearModule._relyOns[registerName] || [];
+            var modules_item;
+            for (var i = 0, len = currentRelyOns.length; i < len; i += 1) {
+                modules_item = modulesStore[currentRelyOns[i]];
+                if (modules_item._isEmitted()) {
+                    modules_item.clear();
+                }
+                modules_item.emitted[registerName] = false;
+            }
+        },
         addDependent: function(moduleName, relyOns) {
             var self = this,
                 addDependentModule = self
             if (relyOns !== undefined) {
                 addDependentModule = self.modules[moduleName];
+            } else {
+                relyOns = moduleName;
             }
             if (addDependentModule) {
                 //要判断依赖重复避免传参错误

@@ -44,7 +44,7 @@ asyncThing1().then(function() {
 
 这说明了什么问题：就是你能对then、catch衍生节点，不过我只能说你的文字描述和代码结构已经脱离了直观耦合，可读性降低了。
 
-在PromiseSouper中，并不直接在API层面提供错误捕捉，我们原则上力求把异常清晰描述，你以为你的Boss会运行你用try-catch来捕获表单格式错误么？
+在PromiseSouper中，并不直接在API层面提供错误捕捉，我们原则上力求把异常清晰描述，你以为你的Boss会允许你用try-catch来捕获表单格式错误么？
 但上面的流程我们在PromiseSouper中可以这么表示：
 ```js
 PromiseCore("main", function() {
@@ -188,7 +188,7 @@ $("name=['password']").on("input", function() {
 
 ### 子模块作用域
 我们通常使用字符串来描述一个模块，但是有时候为了避免模块名冲突而使用一堆过长字符串是得不偿失的。因此可以使用`registerChild`来实现子模块的注册，用`register`来注册同级模块。这样可以在不同的作用域中用简单字符串来描述模块（作为模块的名字）而不引发模块覆盖。
-注意，模块A是无法获取到子模块B的子模块C，但是C可以获取到模块A，应为模块存储链式继承的。
+注意，模块A是无法获取到子模块B的子模块C，但是C可以获取到模块A，因为模块存储链式继承的。
 
 ## API
 
@@ -232,14 +232,14 @@ $("name=['password']").on("input", function() {
 
 **介绍**
 
+根据模块名称获取子模块或者全局模块
+
 ### .getModule(PromiseCore.prototype)
 **参数**
 
 1. 模块名：`modulesName` _String_ 可空，若为空，则指向最近一次声明的PromiseCore实例对象
 
 **介绍**
-
-根据模块名称获取子模块或者全局模块
 
 根据模块名称获取全局模块
 

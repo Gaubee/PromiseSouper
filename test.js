@@ -114,7 +114,62 @@ PromiseCore("login", ["username", "password"], function(username, password) {
 }).registerChild("submit",["login"],function (form_data) {
     console.log("       submit form:",form_data);
 }).getModule("test").emit();
-//不重置的情况，每一次子模块触发都会引发login的触发
+//不重置表单的情况，每一次子模块触发都会引发login的触发
 PromiseCore.getModule("login").emit("username",["Bangeel"]).emit("password",["654321"]);
-//重置的情况，子模块全部触发一次才能正常触发login模块
+//重置表单的情况，子模块全部触发一次才能正常触发login模块
 PromiseCore.getModule("login").reset("login").emit("username",["Cindy"]).emit("password",["heehhehheh"]);
+
+/*
+ * 测试清空触发记录
+ */
+console.log("------------------测试清空------------------");
+var clearModule = PromiseCore(["username","password","click submit"],function (username, password) {
+    console.log("username is:",username);
+    console.log("password is:",password);
+    console.log("submit success");
+
+    //click submit只能是一次性的，每次触发这个提交一定要click submit一次
+    this.clear("click submit");
+})
+.registerChild("click submit",function () {
+    console.log("click submit button");
+})
+.registerChild("username","input username",function (username) {
+    return username;
+})
+.registerChild("input username",function(value){
+    if (!value.length) {
+        this.clear();
+    }
+    return value;
+})
+.registerChild("password","input password",function (password) {
+    return password;
+})
+.registerChild("input password",function(value){
+    if (!value.length) {
+        this.clear();
+    }
+    return value;
+})
+//输入用户名
+.emit("input username",["Gaubee"])
+//输入密码
+.emit("input password",["123456"])
+//点击提交
+.emit("click submit")
+
+//修改用户名
+.emit("input username",["Bangeel"])
+//再次提交
+.emit("click submit")
+
+//密码滞空
+.emit("input password",[""])
+//密码为modules_item空时，无法提交表单，等待密码的输入
+.emit("click submit")
+
+
+console.log(Object.keys(clearModule.modules));
+console.log(Object.keys(clearModule.getModule("input username").modules.__proto__));
+console.log(clearModule.getModule("input username")._relyOns.__proto__);
